@@ -1,6 +1,7 @@
 package stream;
 
 import function.*;
+import iterator.*;
 import util.*;
 
 public interface Stream<T> {
@@ -61,6 +62,83 @@ public interface Stream<T> {
         };
     }
 
+    default Optional<T> reduce(BinaryOperator<T> accumulator) {
+        // reducer with first element as initial value. returns Optional
+        Iterator<T> it = iterator();
+        if (!it.hasNext()) return Optional.empty();
+
+        T result = it.next();
+        while (it.hasNext())
+            result = accumulator.apply(result, it.next());
+
+        return Optional.of(result);
+    }
+
+    default <U> U reduce (U identity, BiFunction<U,? super T,U> accumulator) {
+        // reducer with base identity (initial type U value)
+        Iterator<T> it = this.iterator();
+        U result = identity;
+
+        result = accumulator.apply(result, it.next());
+        while (it.hasNext())
+            result = accumulator.apply(result, it.next());
+
+        return result;
+    }
+
+    default Stream<T> concat(Stream<? extends T> after) {
+        return () -> {
+            Pair<T> pair = eval();
+            if (pair == null) return (Pair<T>) after.eval();
+
+            return new Pair<T>(
+                    pair.value,
+                    pair.getRest().concat(after)
+            );
+        };
+    }
+
+    default <S> Stream<S> flatMap(Function<T, Stream<S>> f) {
+        return flatten(this.map(f));
+    }
+
+    default Iterator<T> iterator(){
+        return new Iterator<T>(){
+            private Pair<T> pair = Stream.this.eval();
+
+            @Override
+            public boolean hasNext() {
+                return (pair != null);
+            }
+
+            @Override
+            public T next() {
+                T result = pair.value;
+                pair = pair.getRest().eval();
+                return result;
+            }
+        };
+    }
+
+    static <T> Stream<T> flatten(Stream<Stream<T>> ss) {
+        return () -> {
+          Pair<Stream<T>> streamPair = ss.eval();
+
+          if (streamPair == null) return null;
+          if (streamPair.value == null)
+              return flatten(streamPair.rest).eval();
+
+          Pair<T> tPair = streamPair.value.eval();
+          if (tPair == null) return flatten(streamPair.rest).eval();
+
+          return new Pair<T> (
+                  tPair.value,
+                  tPair.rest.concat(flatten(streamPair.rest))
+          );
+
+        };
+    }
+
     static <T> Stream<T> empty() {
         return () -> null;
     }
@@ -69,7 +147,8 @@ public interface Stream<T> {
         return () -> new Pair<>(x, empty());
     }
 
-    static <T> Stream<T> of(T[] args) {
+    @SafeVarargs
+    static <T> Stream<T> of(T... args) {
         class State {
             int count = 0;
 
