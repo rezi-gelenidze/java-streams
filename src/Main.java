@@ -1,14 +1,15 @@
 import collection.List;
+import function.Consumer;
+import function.Predicate;
 import stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
-        List<Integer> l = new List<>(5);
-        l.next = new List<Integer>(10);
-        l.next.next = new List<Integer>(12);
-        l.next.next.next = new List<Integer>(16);
-        l.next.next.next.next = new List<Integer>(125);
-
-        System.out.println(l.stream().findFirst().orElse(null));;
+        Function<String, Integer>
+        Stream.of(new String[]{"1 ", "2", "3", " 4"})
+                .map(String::trim)
+                .map(Integer::parseInt)
+                .map((a) -> 2 * a)
+                .forEach(System.out::println);
     }
 }
