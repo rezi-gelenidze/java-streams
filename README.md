@@ -1,0 +1,1 @@
+Implementing Java custom Streams System. Ideal for learning Streams inner architecture.
