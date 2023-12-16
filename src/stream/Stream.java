@@ -79,9 +79,20 @@ public interface Stream<T> {
         Iterator<T> it = this.iterator();
         U result = identity;
 
-        result = accumulator.apply(result, it.next());
+        if (it.hasNext()) result = accumulator.apply(result, it.next());
         while (it.hasNext())
             result = accumulator.apply(result, it.next());
+
+        return result;
+    }
+
+    default <R> R collect (Supplier<R> supplier, BiConsumer<R,? super T> accumulator, BiConsumer<R,R> combiner) {
+        Iterator<T> it = this.iterator();
+        R result = supplier.get();
+
+        if (it.hasNext()) accumulator.accept(result, it.next());
+        while(it.hasNext())
+            accumulator.accept(result, it.next());
 
         return result;
     }
